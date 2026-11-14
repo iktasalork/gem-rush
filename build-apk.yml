@@ -31,13 +31,32 @@ jobs:
 
       - name: Set the app icon
         run: |
-          if [ -f icon.png ]; then
-            mkdir -p assets
-            cp icon.png assets/icon-only.png
-            npx --yes @capacitor/assets generate --android --iconBackgroundColor '#140a33' --iconBackgroundColorDark '#140a33'
-          else
-            echo "No icon.png found, using the default icon"
-          fi
+          pip install pillow
+          python3 - <<'PY'
+          import os, glob, shutil
+          from PIL import Image, ImageDraw
+          if not os.path.exists("icon.png"):
+              print("ERROR: icon.png was not found in the main folder of the repo")
+              raise SystemExit(1)
+          img = Image.open("icon.png").convert("RGBA")
+          res = "android/app/src/main/res"
+          sizes = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
+          for dpi, s in sizes.items():
+              folder = f"{res}/mipmap-{dpi}"
+              os.makedirs(folder, exist_ok=True)
+              sq = img.resize((s, s), Image.LANCZOS)
+              sq.save(f"{folder}/ic_launcher.png")
+              mask = Image.new("L", (s * 4, s * 4), 0)
+              ImageDraw.Draw(mask).ellipse((0, 0, s * 4 - 1, s * 4 - 1), fill=255)
+              mask = mask.resize((s, s), Image.LANCZOS)
+              rd = sq.copy()
+              rd.putalpha(mask)
+              rd.save(f"{folder}/ic_launcher_round.png")
+              sq.save(f"{folder}/ic_launcher_foreground.png")
+          for d in glob.glob(f"{res}/mipmap-anydpi*"):
+              shutil.rmtree(d, ignore_errors=True)
+          print("Icons written to", res)
+          PY
 
       - name: Sync the project
         run: npx cap sync android
