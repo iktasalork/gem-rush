@@ -1,0 +1,9 @@
+{
+  "appId": "com.gemrush.game",
+  "appName": "Gem Rush",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "backgroundColor": "#140a33"
+}
